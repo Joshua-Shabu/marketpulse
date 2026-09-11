@@ -1,0 +1,61 @@
+name: CI
+
+# Runs on every push and pull request against main.
+# Two jobs: (1) install deps + run the unit test suite, (2) build the Docker
+# image to prove the Dockerfile actually produces a working container —
+# the build job only runs once the test job has passed.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+
+  build:
+    name: Build Docker image
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (not pushed)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: marketpulse:ci
+
+      # --- Optional next step (not enabled) ---
+      # To turn this into real CD, add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
+      # as repo secrets (Settings -> Secrets and variables -> Actions), then
+      # add a docker/login-action step before build-push-action and switch
+      # `push: false` to `push: true` with a real tag such as
+      # ${{ secrets.DOCKERHUB_USERNAME }}/marketpulse:latest.

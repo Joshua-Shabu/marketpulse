@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.example
+tests/
+.git/
+.github/
+*.db
+*.sqlite
+README.md
